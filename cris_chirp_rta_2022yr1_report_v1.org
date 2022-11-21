@@ -1,0 +1,263 @@
+#+LATEX_CLASS_OPTIONS: [11pt,twocolumn]
+#+latex_header: \hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+#+LATEX_HEADER: \usepackage{placeins}
+#+OPTIONS: H:4 toc:nil title:nil author:nil date:nil
+#+LATEX_HEADER: \input article_setup.tex
+#+LATEX_HEADER: \usepackage[nottoc,numbib]{tocbibind}
+#+LATEX_HEADER: \renewcommand{\UrlFont}{\small\tt}
+#+LATEX_HEADER: \renewcommand*{\UrlFont}{\footnotesize}
+#+LATEX_HEADER: \hypersetup{colorlinks,citecolor=black,linkcolor=blue,urlcolor=magenta}
+#+LATEX_HEADER: \usepackage{ragged2e}
+
+#+BEGIN_EXPORT latex
+\author{L. Larrabee Strow, Sergio DeSouza-Machado, and Chris Hepplewhite}
+\date{\today}
+\title{\Large Year-1/Progress Report\\ \vspace{0.05in} \normalsize Award <>
+  \\The Stand Alone Rapid Transmittance Algorithm for CrIS and CHIRP}
+\maketitle
+#+END_EXPORT
+
+* COMMENTS  Stuff to fix
+- 
+
+
+* Overview
+  :PROPERTIES:
+  :CUSTOM_ID: sec:org70b888b
+  :END:
+
+The CrIS and CHIRP radiative transfer algorithms (RTA) are fast parameterizations
+of channel-averaged atmospheric layer transmittances. The original
+wrapper code is the Stand Alone Rapid Transmittance Algorithm
+(SARTA) and consists of a clear sky RTA, used in generating 
+L2 retrieved products from level L1C Cloud Cleared Radiances
+(CCRs), and a scattering version coupled to a novel representation
+of clouds as two slabs (DeSouza-Machado et al 2018).
+The 2-slab model takes advantage of the fact the
+hyperspectral infrared radiances have very few degrees of freedom of cloud
+information, allowing one to model the radiative transfer through two
+equivalent layers instead of using multiple layers and phases in the
+simulation. This is used at UMBC for single footprint
+retrievals at the native sensor horizontal resolution.
+
+The SARTA transmittances are derived from simulated
+transmittances computed with UMBC's pseudo line-by-line algorithm kCARTA
+(kCompressed Atmospheric Radiative Transfer Algorithm), which is the
+reference forward model for SARTA. The line-by-line transmittances are
+convolved to the CrIS and CHIRP spectral line shapes (ILS) then fitted to a suite
+of predictors used for the fast coefficients in SARTA.
+The optical depths (ODs) used in kCARTA
+primarily come from our custom in-house Matlab based line-by-line code
+(UMBC-LBL). Additionally, kCARTA can be built with \cd and
+\methane optical depths from the AER-LBLRTM code. Currently,
+\methane line-mixing is not implemented in the UMBC-LBL so the AER-LBLRTM
+option is used.
+A complete description of both the underlying
+line-by-line code (UMBC-LBL) and kCARTA can be found in
+ref: DeSouza-Machado et al (2020).
+
+
+* Year 1 Activities
+
+** Variables and gases included
+
+The following is a summary list of the processes, variables and gases
+that are included in the CrIS and CHIRP SARTA.
+Absorption by H2O, O3, CH4, CO, HNO3, N2O, SO2, NH3, HDO, CO2 including line mixing and nonLTE,
+surface TIR emissivity and solar reflectivity, including atmospheric path zenith angle
+and solar zenith angle. The two-slab scattering version includes water droplet, various
+ice and some dust habitats.
+
+** Build Status at time of writing.
+
+The current SARTA build uses the HITRAN 2020 updated line database.
+The 2020 release of HITRAN was delayed significantly
+to the end of 2021, this has been installed at UMBC and tested uisng the kCARTA
+model. The most significant changes to the 2016 release for this application, include the
+1050 cm-1 Ozone and SO2 line parameters. There are minor changes
+in many other spectral regions, but after convolution to the sensor response function
+the changes were generally very small. At the time of writing the new optical depths for
+training profiles have been computed, from which updated fast coefficients for SARTA have mostly
+been computed and tested for both the CrIS FSR and CHIRP spectral responses. The 2-slab
+scattering codes will be built and tested in the next reporting period. 
+
+
+** Testing, Validation and Tuning
+
+At the time of this report, the testing of the current builds has consisted of quantifying
+the fit residuals for the atmospheric profile training set against the kCARTA top-of-
+atmosphere (TOA) brightness temperatures. There are 49 training profiles applied over a
+range of view and solar angles and surface emissivities. This set of tests provides the
+verification needed to demonstrate that the fast coefficient regressions have completed
+successfully and where any adjustments are needed. This preceeds testing of the minor gas
+perturbations, or Jacobians, and preceeds application to actual sensor records, which
+in turn preceeds any tuning that may be required after comparison with conditioned tests
+against radiosondes, for example.
+
+An example of the test against kCARTA TOA BTs for the CrIS full spectral resolution (FSR)
+is shown in figure 1 for various slant path angles from nadir to 60-degrees. Notice the
+mean bias is typically ~0.1 K with some exception in the 1300cm-1 CH4 band and N2O near 2050 cm-1.
+There is very little variation with view angle, except in the 660cm-1 CO2 band. These regions
+can and will be improved.
+
+#+NAME: fig1
+#+ATTR_LATEX: :width \linewidth
+#+CAPTION: Comparison of SARTA vs kCARTA top-of-atmosphere BT for CrIS FSR. Top: mean. Middle: mean bias. Bottom: std.dev. See text.
+[[./Figs/sar_kc_cris_hr_mean_bias_vs_angle_aslp.pdf]]
+
+Figure 2 shows the difference between the current build and the previous (v2018),
+which used HITRAN 2016
+line parameters, calculated for CrIS FSR using the 49 atmospheric fitting profiles. The
+biggest change is evident in the 1050 cm-1 Ozone band, with some small changes in other parts
+of the band.
+
+#+NAME: fig2
+#+ATTR_LATEX: width \linewidth
+#+CAPTION: Comparison of current and previous SARTA build for CrIS FSR. Top: Mean BT. Middle: Mean bias. Bottom: std.dev of the sample. 
+[[./Figs/sarta_cris_hr_h2018_vs_h2020_r49_686_mn_stdaslp.pdf]]
+
+Figure 3 shows the CHIRP SARTA TOA BT calcluations compared to the kCARTA for the same 49 fitting
+profiles and path combinations as used in figure 1 for CrIS FSR. There a similarly small bias
+differences as expected, with the strong CO2 lines in the 667 cm-1 and 2350 cm-1 bands
+exhibiting variation with view angle which is anticipated at this stage of
+development and will be eliminated with updated training as has been done for CrIS.
+
+#+NAME: fig3
+#+ATTR_LATEX: :width \linewidth
+#+CAPTION: Comparison of SARTA vs kCARTA top-of-atmosphere BT for CHIRP. Top: mean. Middle: mean bias. Bottom: std.dev. See text.
+[[./Figs/sar_kc_chirp_mean_bias_vs_angle_aslp.pdf]]
+
+
+** Emissivity/Reflectivity Improvements
+
+A higher fidelity model of ocean emissivity has been in review with Dr. Nalli
+which includes updated surface roughness parameterization. The number of sample points
+across the sensor spectral bandpass has also been increased and include the more
+opaque regions outside the LW window. Studies at UMBC show that the changes are less
+than about 0.1 K BT worst case. It is yet to be demonstrated that the correction improves
+bias analyses, and how or if the changes will be incorporated.
+
+In addition, the Chou emissivity scaling parameters have been under test at UMBC,
+this work has just begun and an assessment will be made in the coming reporting period.
+
+
+* Non-LTE Emission
+
+#+NAME: fig6
+#+ATTR_LATEX: :width \linewidth
+#+CAPTION: Old vs Extended nonLTE model.
+[[./Figs/predicted_nonlte_old_vs_new_vs_solzen.pdf]]
+
+A new set of non-LTE profiles from the atmospheric
+research group (IAA) at the University of Granada, Spain were supplied
+to UMBC and these have been investigated. They offer more detailed
+modelling than previously and through the night time.
+At the time of writing, a trial
+regression has been performed to update the SARTA coefficients, and results
+indicate that refinement in the choice of predictors is required. This work
+will continue and the new model is planned to be incorporated subject
+to being verified as improving the biases in this region, during
+the next reporting period.
+
+
+* References:
+DeSouza_Machado et al. Atmos. Meas. Tech., 11, 529–550, 2018
+https://doi.org/10.5194/amt-11-529-2018
+
+DeSouza-Machado et al. Atmos. Meas. Tech., 13, 323–339, 2020
+https://doi.org/10.5194/amt-13-323-2020
+
+
+* COMMENT
+** kCARTA Spectroscopic databases and linemixing packages
+
+We use our in-house line-by-line code to produce compressed optical
+depths for kCARTA, as we are able to incorporate HITRAN updates faster
+than AER-LBLRTM. The current exceptions to this are \cd and \methane,
+where use more recent line-mixing models that are available in LBLRTM
+v12.8.  The next standard quadrennial update to the HITRAN database is
+scheduled for 2020.
+
+The optical depths generated by KCARTA have been at
+0.0025 \wn resolution through the entire 605-2830 \wn region. We
+recently described up-grades to kCARTA in [AMT 2020] that
+significantly improve the comparisons against LBLRTM. These include
+changing the database resolution to 0.0005 \wn in the
+605-805 \wn region, which impacts the radiances computed for
+the high altitude sounding channels in the 15 um region. When the
+HITRAN 2020 database is released, we plan to change the resolution of
+kCARTA to 0.0005 \wn for the entire IR region (500-2830 \wn).
+
+We attempted to include improved \cd line-mixing into the new
+RTA (2018) (over and above what is in the most recent versions of
+LBLRTM.)  Working with Iouli Gordon of the Harvard-Smithsonian we put
+a significant effort into evaluating their new \cd line-mixing
+algorithm that was adopted from relatively recent research by several
+French groups.  Unfortunately, we found a number of problems with
+their implementation, which we communicated back to them, that we
+believe will be fixed in the next year. When released, we will need to
+validate and understand the liens on this code (such as far wing
+effects), compared to what in the AER LBLRTM codes and our own
+UMBC-LBL linemixing.
+
+AER plans to update the \methane line-mixing in LBLRTM, which they
+could probably release to us before releasing inside an official
+LBLRTM version [personal communication from AER].
+
+** kCARTA Spanning Database
+
+KCARTA currently uses an optical depth database with the US Standard
+Temperature profile as it basis, together with temperature offsets of
+$\pm$ 10, ..., $\pm$ 50 K from this profile. An examination of global
+ERA temperature profiles from any random day shows that almost all
+profiles fall within the $\pm$ 50K range, except for a few very cold
+profiles over the Antarctic plateau and some hot profiles over desert
+regions. To mitigate this, we plan to modify the KCARTA database to
+extend to $\pm$ 80 K.
+
+** NLTE
+
+Non-LTE is used for retrievals since the
+T(z) profile retrieval is done using shortwave channels that have NLTE BT
+contributions of up to 10 K (after convolution). Typically we see
+about 0.5 K biases and standard deviation between
+observations and SARTA calculations. We don't believe this difference
+is due to \cd amounts, but is more likely due to the NLTE physics in
+KCARTA and/or parametrization.
+
+Recent work has shown that our 2006 implementation of NLTE needs
+improvement, in terms of parametrization and NLTE training
+profiles. We have started an inter-comparison of NLTE radiances using
+monochromatic KCARTA (old line-mixing) versus LBLRTM (updated
+line-mixing); preliminary studies show the bias and standard deviation
+are similar to the (obs-cal) numbers stated above. More work is therefore needed
+to improve the NLTE radiances.
+
+** \cd jacobians
+
+Recent work (paper from our group on AIRS trends submitted to AMT) definitively showed that, as
+expected, the RTA loses accuracy if the \cd amount
+changes by more than ~5%.  This is due to the close interaction
+between temperature and \cd jacobians.  We will either improve the \cd
+parameterization (and \methane, \nitrous) or produce several versions of SARTA
+RTA coefficients that can be switched in as these minor greenhouse gas
+levels increase.
+
+** Trace gases
+
+In the future we plan to include (a) profile HDO rather than the
+current HDO column multiplier (b) CFC11 and CFC12 column break outs,
+since now given the long life-span of AIRS they cannot be considered
+fixed gases.
+
+** Validation with GRUAN Sondes
+
+In the past we have validated various spectroscopy improvements (from
+HITRAN, from new version of the water continuum).  We now plan to do a
+more comprehensive validation of the  RTA using the WMO GRUAN
+sonde set, along with the DOE-ARM sondes that were launch co-incident
+with AQUA.
+
+
+
+
